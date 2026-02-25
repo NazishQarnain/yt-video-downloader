@@ -272,15 +272,16 @@
 
         infoEl.className = 'video-info show';
 
-        // Reliable 1080p and High-Quality Download Links
+        // SSYouTube trick for 1080p
+        const ssUrl = urlInput.replace('youtube.com', 'ssyoutube.com').replace('youtu.be', 'ssyoutube.com');
+
         const options = [
           {
             label: 'Download 1080p / 4K / 8K',
             badge: 'BEST 1080p',
-            href: `https://en1.savefrom.net/1-youtube-video-downloader-381/`,
-            query: vidId,
+            href: ssUrl,
             icon: '🔥',
-            note: 'via SaveFrom'
+            note: 'Auto-downloads'
           },
           {
             label: 'Download MP4 (High Quality)',
