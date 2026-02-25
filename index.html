@@ -236,12 +236,6 @@
       return null;
     }
 
-    function formatDuration(sec) {
-      if (!sec) return '--';
-      const m = Math.floor(sec / 60), s = sec % 60;
-      return `${m}:${s.toString().padStart(2,'0')}`;
-    }
-
     async function fetchInfo() {
       const url = document.getElementById('ytUrl').value.trim();
       const errEl = document.getElementById('errorMsg');
@@ -269,7 +263,6 @@
       loadEl.className = 'loading show';
 
       try {
-        // Use noembed for video info (public, no key needed)
         const infoResp = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
         const info = await infoResp.json();
 
@@ -280,15 +273,20 @@
 
         infoEl.className = 'video-info show';
 
-        // Build download options using multiple free services
-        const encodedUrl = encodeURIComponent(url);
+        const cobaltInstances = [
+          'https://cobalt.tools',
+          'https://cobalt.api.sh.it.cool',
+          'https://cobalt.reaper.sh'
+        ];
+        
         const options = [
           {
             label: 'Download MP4 - 1080p (HD)',
             badge: '1080p',
-            href: `https://cobalt.tools/#${encodedUrl}`,
+            href: `https://cobalt.tools/api/json?url=${encodeURIComponent(url)}&vCodec=h264&vQuality=1080`,
             icon: '🎬',
-            note: 'via cobalt.tools'
+            note: 'Direct Link',
+            isDirect: true
           },
           {
             label: 'Download MP4 - 720p',
@@ -300,35 +298,65 @@
           {
             label: 'Download MP3 - Audio Only',
             badge: 'MP3',
-            href: `https://cobalt.tools/#${encodedUrl}`,
+            href: `https://cobalt.tools/api/json?url=${encodeURIComponent(url)}&isAudioOnly=true`,
             icon: '🎵',
-            note: 'via cobalt.tools'
-          },
-          {
-            label: 'Download via SaveFrom.net',
-            badge: 'Multi',
-            href: `https://en.savefrom.net/#${url}`,
-            icon: '💾',
-            note: 'via savefrom.net'
+            note: 'Direct Audio',
+            isDirect: true
           }
         ];
 
-        options.forEach(opt => {
+        for (const opt of options) {
           const a = document.createElement('a');
           a.className = 'quality-btn';
-          a.href = opt.href;
-          a.target = '_blank';
+          
+          if (opt.isDirect) {
+            a.onclick = async (e) => {
+              e.preventDefault();
+              const originalText = a.innerHTML;
+              a.innerHTML = '<span>⏳ Processing...</span> <span class="badge">Wait</span>';
+              
+              try {
+                const response = await fetch('https://api.cobalt.tools/api/json', {
+                  method: 'POST',
+                  headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({
+                    url: url,
+                    vCodec: 'h264',
+                    vQuality: opt.badge === '1080p' ? '1080' : '720',
+                    isAudioOnly: opt.badge === 'MP3'
+                  })
+                });
+                const data = await response.json();
+                if (data.url) {
+                  window.location.href = data.url;
+                } else {
+                  throw new Error('No URL returned');
+                }
+              } catch (err) {
+                // Fallback to cobalt web UI
+                window.open(`https://cobalt.tools/#${encodeURIComponent(url)}`, '_blank');
+              }
+              a.innerHTML = originalText;
+            };
+          } else {
+            a.href = opt.href;
+            a.target = '_blank';
+          }
+          
           a.rel = 'noopener noreferrer';
           a.innerHTML = `
             <span>${opt.icon} ${opt.label} <small class="size">${opt.note}</small></span>
             <span class="badge">${opt.badge}</span>
           `;
           qualEl.appendChild(a);
-        });
+        }
 
         qualEl.className = 'quality-options show';
       } catch(e) {
-        errEl.textContent = 'Could not fetch video info. Please check the URL or try again later.';
+        errEl.textContent = 'Could not fetch video info. Please try again.';
         errEl.className = 'error show';
       }
 
@@ -337,18 +365,6 @@
 
     document.getElementById('ytUrl').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') fetchInfo();
-    });
-
-    // Auto-paste from clipboard on focus if empty
-    document.getElementById('ytUrl').addEventListener('focus', async function() {
-      if (!this.value) {
-        try {
-          const text = await navigator.clipboard.readText();
-          if (text && (text.includes('youtube.com') || text.includes('youtu.be'))) {
-            this.value = text;
-          }
-        } catch(e) {}
-      }
     });
   </script>
 </body>
