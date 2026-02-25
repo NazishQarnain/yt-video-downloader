@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YT Video Downloader</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 680px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      justify-content: center;
+    }
+    .logo svg { width: 48px; height: 48px; }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #ff0000, #ff6b35);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      text-align: center;
+      color: #aaa;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    input[type="text"]::placeholder { color: #888; }
+    input[type="text"]:focus { border-color: #ff0000; }
+    .btn-fetch {
+      padding: 14px 24px;
+      background: linear-gradient(135deg, #ff0000, #cc0000);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
+    }
+    .btn-fetch:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,0,0,0.4); }
+    .btn-fetch:active { transform: translateY(0); }
+    .quality-options {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .quality-options.show { display: flex; }
+    .video-info {
+      display: none;
+      background: rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      flex-direction: row;
+      gap: 16px;
+      align-items: center;
+    }
+    .video-info.show { display: flex; }
+    .video-info img {
+      width: 120px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .video-details h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .video-details p { font-size: 0.8rem; color: #aaa; }
+    .quality-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: #fff;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .quality-btn:hover { background: rgba(255,0,0,0.2); border-color: #ff0000; }
+    .quality-btn .badge {
+      background: #ff0000;
+      color: #fff;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .quality-btn .size { color: #aaa; font-size: 0.8rem; }
+    .loading { display: none; text-align: center; padding: 20px; color: #aaa; }
+    .loading.show { display: block; }
+    .spinner {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #ff0000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { display: none; color: #ff6b6b; background: rgba(255,0,0,0.1); border: 1px solid rgba(255,0,0,0.3); padding: 12px 16px; border-radius: 10px; font-size: 0.9rem; margin-top: 10px; }
+    .error.show { display: block; }
+    .note {
+      margin-top: 24px;
+      font-size: 0.78rem;
+      color: #666;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .note a { color: #ff6b35; text-decoration: none; }
+    .supported {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .tag {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      color: #ccc;
+    }
+    footer { margin-top: 20px; color: #555; font-size: 0.78rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="48" height="48" rx="12" fill="#FF0000"/>
+        <path d="M20 16L32 24L20 32V16Z" fill="white"/>
+      </svg>
+      <h1>YT Downloader</h1>
+    </div>
+    <p class="subtitle">Download YouTube videos in MP4, MP3 and more</p>
+
+    <div class="input-group">
+      <input type="text" id="ytUrl" placeholder="Paste YouTube URL here... (e.g. https://youtu.be/...)" />
+      <button class="btn-fetch" onclick="fetchInfo()">Fetch</button>
+    </div>
+
+    <div class="error" id="errorMsg"></div>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Fetching video info...</p>
+    </div>
+
+    <div class="video-info" id="videoInfo">
+      <img id="thumbnail" src="" alt="thumbnail" />
+      <div class="video-details">
+        <h3 id="videoTitle">Video Title</h3>
+        <p id="videoDuration">Duration: --</p>
+        <p id="videoAuthor">Channel: --</p>
+      </div>
+    </div>
+
+    <div class="quality-options" id="qualityOptions"></div>
+
+    <div class="supported">
+      <span class="tag">youtube.com</span>
+      <span class="tag">youtu.be</span>
+      <span class="tag">MP4 HD</span>
+      <span class="tag">MP3 Audio</span>
+      <span class="tag">Shorts</span>
+    </div>
+
+    <p class="note">
+      This tool uses the <strong>cobalt.tools</strong> open API to fetch download links.<br/>
+      For personal/educational use only. Respect YouTube's Terms of Service.<br/>
+      Having trouble? Try <a href="https://cobalt.tools" target="_blank">cobalt.tools</a> directly.
+    </p>
+  </div>
+
+  <footer>Made by NazishQarnain &bull; YT Video Downloader &copy; 2026</footer>
+
+  <script>
+    function extractVideoId(url) {
+      try {
+        const u = new URL(url);
+        if (u.hostname === 'youtu.be') return u.pathname.slice(1);
+        if (u.hostname.includes('youtube.com')) {
+          if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/shorts/')[1];
+          return u.searchParams.get('v');
+        }
+      } catch(e) { return null; }
+      return null;
+    }
+
+    function formatDuration(sec) {
+      if (!sec) return '--';
+      const m = Math.floor(sec / 60), s = sec % 60;
+      return `${m}:${s.toString().padStart(2,'0')}`;
+    }
+
+    async function fetchInfo() {
+      const url = document.getElementById('ytUrl').value.trim();
+      const errEl = document.getElementById('errorMsg');
+      const loadEl = document.getElementById('loading');
+      const infoEl = document.getElementById('videoInfo');
+      const qualEl = document.getElementById('qualityOptions');
+
+      errEl.className = 'error';
+      infoEl.className = 'video-info';
+      qualEl.className = 'quality-options';
+      qualEl.innerHTML = '';
+
+      if (!url) {
+        errEl.textContent = 'Please enter a YouTube URL.';
+        errEl.className = 'error show';
+        return;
+      }
+      const vidId = extractVideoId(url);
+      if (!vidId) {
+        errEl.textContent = 'Invalid YouTube URL. Please check and try again.';
+        errEl.className = 'error show';
+        return;
+      }
+
+      loadEl.className = 'loading show';
+
+      try {
+        // Use noembed for video info (public, no key needed)
+        const infoResp = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
+        const info = await infoResp.json();
+
+        document.getElementById('thumbnail').src = `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`;
+        document.getElementById('videoTitle').textContent = info.title || 'YouTube Video';
+        document.getElementById('videoDuration').textContent = 'YouTube Video';
+        document.getElementById('videoAuthor').textContent = 'Channel: ' + (info.author_name || 'Unknown');
+
+        infoEl.className = 'video-info show';
+
+        // Build download options using multiple free services
+        const encodedUrl = encodeURIComponent(url);
+        const options = [
+          {
+            label: 'Download MP4 - 1080p (HD)',
+            badge: '1080p',
+            href: `https://cobalt.tools/#${encodedUrl}`,
+            icon: '🎬',
+            note: 'via cobalt.tools'
+          },
+          {
+            label: 'Download MP4 - 720p',
+            badge: '720p',
+            href: `https://www.y2mate.com/youtube/${vidId}`,
+            icon: '📹',
+            note: 'via y2mate'
+          },
+          {
+            label: 'Download MP3 - Audio Only',
+            badge: 'MP3',
+            href: `https://cobalt.tools/#${encodedUrl}`,
+            icon: '🎵',
+            note: 'via cobalt.tools'
+          },
+          {
+            label: 'Download via SaveFrom.net',
+            badge: 'Multi',
+            href: `https://en.savefrom.net/#${url}`,
+            icon: '💾',
+            note: 'via savefrom.net'
+          }
+        ];
+
+        options.forEach(opt => {
+          const a = document.createElement('a');
+          a.className = 'quality-btn';
+          a.href = opt.href;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.innerHTML = `
+            <span>${opt.icon} ${opt.label} <small class="size">${opt.note}</small></span>
+            <span class="badge">${opt.badge}</span>
+          `;
+          qualEl.appendChild(a);
+        });
+
+        qualEl.className = 'quality-options show';
+      } catch(e) {
+        errEl.textContent = 'Could not fetch video info. Please check the URL or try again later.';
+        errEl.className = 'error show';
+      }
+
+      loadEl.className = 'loading';
+    }
+
+    document.getElementById('ytUrl').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') fetchInfo();
+    });
+
+    // Auto-paste from clipboard on focus if empty
+    document.getElementById('ytUrl').addEventListener('focus', async function() {
+      if (!this.value) {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text && (text.includes('youtube.com') || text.includes('youtu.be'))) {
+            this.value = text;
+          }
+        } catch(e) {}
+      }
+    });
+  </script>
+</body>
+</html>
