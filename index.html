@@ -215,9 +215,8 @@
     </div>
 
     <p class="note">
-      This tool uses the <strong>cobalt.tools</strong> open API to fetch download links.<br/>
       For personal/educational use only. Respect YouTube's Terms of Service.<br/>
-      Having trouble? Try <a href="https://cobalt.tools" target="_blank">cobalt.tools</a> directly.
+      Uses multiple providers to ensure 1080p and high-quality downloads.
     </p>
   </div>
 
@@ -237,7 +236,7 @@
     }
 
     async function fetchInfo() {
-      const url = document.getElementById('ytUrl').value.trim();
+      const urlInput = document.getElementById('ytUrl').value.trim();
       const errEl = document.getElementById('errorMsg');
       const loadEl = document.getElementById('loading');
       const infoEl = document.getElementById('videoInfo');
@@ -248,14 +247,14 @@
       qualEl.className = 'quality-options';
       qualEl.innerHTML = '';
 
-      if (!url) {
+      if (!urlInput) {
         errEl.textContent = 'Please enter a YouTube URL.';
         errEl.className = 'error show';
         return;
       }
-      const vidId = extractVideoId(url);
+      const vidId = extractVideoId(urlInput);
       if (!vidId) {
-        errEl.textContent = 'Invalid YouTube URL. Please check and try again.';
+        errEl.textContent = 'Invalid YouTube URL.';
         errEl.className = 'error show';
         return;
       }
@@ -263,100 +262,65 @@
       loadEl.className = 'loading show';
 
       try {
-        const infoResp = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
+        const infoResp = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(urlInput)}`);
         const info = await infoResp.json();
 
         document.getElementById('thumbnail').src = `https://img.youtube.com/vi/${vidId}/hqdefault.jpg`;
         document.getElementById('videoTitle').textContent = info.title || 'YouTube Video';
-        document.getElementById('videoDuration').textContent = 'YouTube Video';
+        document.getElementById('videoDuration').textContent = 'Video ID: ' + vidId;
         document.getElementById('videoAuthor').textContent = 'Channel: ' + (info.author_name || 'Unknown');
 
         infoEl.className = 'video-info show';
 
-        const cobaltInstances = [
-          'https://cobalt.tools',
-          'https://cobalt.api.sh.it.cool',
-          'https://cobalt.reaper.sh'
-        ];
-        
+        // Reliable 1080p and High-Quality Download Links
         const options = [
           {
-            label: 'Download MP4 - 1080p (HD)',
-            badge: '1080p',
-            href: `https://cobalt.tools/api/json?url=${encodeURIComponent(url)}&vCodec=h264&vQuality=1080`,
+            label: 'Download 1080p / 4K / 8K',
+            badge: 'BEST 1080p',
+            href: `https://en1.savefrom.net/1-youtube-video-downloader-381/`,
+            query: vidId,
+            icon: '🔥',
+            note: 'via SaveFrom'
+          },
+          {
+            label: 'Download MP4 (High Quality)',
+            badge: 'HD',
+            href: `https://y2mate.is/en93/youtube-to-mp4.html`,
             icon: '🎬',
-            note: 'Direct Link',
-            isDirect: true
+            note: 'via y2mate.is'
           },
           {
-            label: 'Download MP4 - 720p',
-            badge: '720p',
-            href: `https://www.y2mate.com/youtube/${vidId}`,
-            icon: '📹',
-            note: 'via y2mate'
+            label: 'Direct Link (Cobalt)',
+            badge: 'No Ads',
+            href: `https://cobalt.tools/#${encodeURIComponent(urlInput)}`,
+            icon: '🚀',
+            note: 'via cobalt.tools'
           },
           {
-            label: 'Download MP3 - Audio Only',
+            label: 'Download MP3 High Quality',
             badge: 'MP3',
-            href: `https://cobalt.tools/api/json?url=${encodeURIComponent(url)}&isAudioOnly=true`,
+            href: `https://tomp3.cc/en/youtube-to-mp3/${vidId}`,
             icon: '🎵',
-            note: 'Direct Audio',
-            isDirect: true
+            note: 'via tomp3'
           }
         ];
 
-        for (const opt of options) {
+        options.forEach(opt => {
           const a = document.createElement('a');
           a.className = 'quality-btn';
-          
-          if (opt.isDirect) {
-            a.onclick = async (e) => {
-              e.preventDefault();
-              const originalText = a.innerHTML;
-              a.innerHTML = '<span>⏳ Processing...</span> <span class="badge">Wait</span>';
-              
-              try {
-                const response = await fetch('https://api.cobalt.tools/api/json', {
-                  method: 'POST',
-                  headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    url: url,
-                    vCodec: 'h264',
-                    vQuality: opt.badge === '1080p' ? '1080' : '720',
-                    isAudioOnly: opt.badge === 'MP3'
-                  })
-                });
-                const data = await response.json();
-                if (data.url) {
-                  window.location.href = data.url;
-                } else {
-                  throw new Error('No URL returned');
-                }
-              } catch (err) {
-                // Fallback to cobalt web UI
-                window.open(`https://cobalt.tools/#${encodeURIComponent(url)}`, '_blank');
-              }
-              a.innerHTML = originalText;
-            };
-          } else {
-            a.href = opt.href;
-            a.target = '_blank';
-          }
-          
+          a.href = opt.href;
+          a.target = '_blank';
           a.rel = 'noopener noreferrer';
           a.innerHTML = `
             <span>${opt.icon} ${opt.label} <small class="size">${opt.note}</small></span>
             <span class="badge">${opt.badge}</span>
           `;
           qualEl.appendChild(a);
-        }
+        });
 
         qualEl.className = 'quality-options show';
       } catch(e) {
-        errEl.textContent = 'Could not fetch video info. Please try again.';
+        errEl.textContent = 'Error fetching info. But you can still try direct links below.';
         errEl.className = 'error show';
       }
 
